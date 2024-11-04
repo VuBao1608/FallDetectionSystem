@@ -1,0 +1,70 @@
+<!-- templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height">
+    <title>Fall Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    <script>
+        function startStreaming() {
+            var rtspUrl = document.getElementById('rtsp_url').value;
+            var videoElement = document.getElementById('stream_video');
+            videoElement.src = "/stream?rtsp_url=" + encodeURIComponent(rtspUrl);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Fall Detection</h1>
+        <form id="rtspForm">
+<!--        onsubmit="startStreaming()"-->
+            <label for="rtsp_url">Enter Camera RTSP URL:</label><br>
+            <input type="text" id="rtsp_url" name="rtsp_url" required>
+            <button type="submit">Start Streaming</button>
+        </form>
+        <div class="stream-container">
+            <img id="stream_video" src="" alt="Camera streaming">
+        </div>
+    </div>
+
+    <script>
+            let ws = null;
+            const videoElement = document.getElementById('stream_video');
+
+            async function startWebSocket() {
+                if (ws !== null) {
+                    ws.close();
+                }
+
+                ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+                videoElement.onload = function(){
+                    URL.revokeObjectURL(this.src); // release the blob URL once the image is loaded
+                }
+
+                ws.onmessage = (event) => {
+    <!--                const blob = new Blob([event.data], { type: 'image/jpeg' });-->
+                    const url = URL.createObjectURL(event.data);
+                    videoElement.src = url;
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            }
+
+            document.getElementById('rtspForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(event.target);
+                const rtspUrl = formData.get('rtsp_url');
+                await fetch('/start_stream?rtsp_url='+rtspUrl, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                startWebSocket();
+            });
+        </script>
+</body>
+</html>

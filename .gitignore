@@ -1,0 +1,4 @@
+.idea
+__pycache__/
+*.py[cod]
+internal/yolov7_pose/weights/yolov7-w6-pose.pt
